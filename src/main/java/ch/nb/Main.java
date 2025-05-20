@@ -12,8 +12,9 @@ public class Main {
     public static void main(String[] args) {
         DocEcmApiAuth.authenticate();
         DocEcmApiAuth.isTokenExpired(60);
-        AttachmentDTO attachment = ApiService.getDocumentAttachment(2414);
-        MetadataDTO metadata = ApiService.getDocumentMetadata(2414);
+        AttachmentDTO attachment = ApiService.getDocumentAttachment(2461);
+        MetadataDTO metadata = ApiService.getDocumentMetadata(2461);
+        ApiService.searchDocumentsMetadata();
         SimpleLogger.info("END");
     }
 }

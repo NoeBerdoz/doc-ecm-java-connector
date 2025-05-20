@@ -34,7 +34,7 @@ public class ApiService {
         }
     }
 
-    private static HttpResponse<String> sendHttpRequest(String endpoint) throws IOException, InterruptedException {
+    private static HttpResponse<String> sendHttpGetRequest(String endpoint) throws IOException, InterruptedException {
         getAuthentication();
 
         HttpRequest request = HttpRequest.newBuilder()
@@ -45,9 +45,31 @@ public class ApiService {
                 .timeout(Duration.ofSeconds(30)) // Increased timeout for potentially large files
                 .build();
         try {
-            SimpleLogger.info("Attempting endpoint: " + endpoint);
+            SimpleLogger.info("Attempting GET request: " + endpoint);
             return HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
         } catch (IOException | InterruptedException e) {
+            SimpleLogger.error("Error sending HTTP GET request to " + endpoint + ": " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    private static HttpResponse<String> sendHttpPostRequest(String endpoint, String payload) throws IOException, InterruptedException {
+        getAuthentication();
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(endpoint))
+                .header("accept", "application/json")
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + DocEcmApiAuth.currentToken.getAccessToken())
+                .POST(HttpRequest.BodyPublishers.ofString(payload))
+                .timeout(Duration.ofSeconds(30))
+                .build();
+        try {
+            SimpleLogger.info("Attempting POST request: " + endpoint);
+            return HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (IOException | InterruptedException e) {
+            SimpleLogger.error("Error sending HTTP POST request to " + endpoint + ": " + e.getMessage());
             e.printStackTrace();
             throw e;
         }
@@ -64,7 +86,7 @@ public class ApiService {
         String endpoint = API_BASE_URL + "/api/document/" + objectID + "/attachment";
 
         try {
-            HttpResponse<String> response = sendHttpRequest(endpoint);
+            HttpResponse<String> response = sendHttpGetRequest(endpoint);
 
             SimpleLogger.info("Get Document Attachment Response Status Code: " + response.statusCode());
 
@@ -94,7 +116,7 @@ public class ApiService {
         String endpoint = API_BASE_URL + "/api/document/" + objectID + "/metadata";
 
         try {
-            HttpResponse<String> response = sendHttpRequest(endpoint);
+            HttpResponse<String> response = sendHttpGetRequest(endpoint);
             SimpleLogger.info("Get Document Metadata response: " + response.body());
             MetadataDTO metadataDTO = objectMapper.readValue(response.body(), MetadataDTO.class);
             SimpleLogger.info(metadataDTO.toString());
@@ -103,6 +125,27 @@ public class ApiService {
             SimpleLogger.error("An error occurred during the HTTP request for getDocumentAttachment: " + e.getMessage());
             e.printStackTrace();
             return null;
+        }
+    }
+
+    public static void searchDocumentsMetadata() {
+        String endpoint = API_BASE_URL + "/api/search/advanced";
+        String payload = "{\"searchPattern\": \";FF_INTEGRE|l01|Non|list;\"}";
+
+        try {
+            HttpResponse<String> response = sendHttpPostRequest(endpoint, payload);
+
+            SimpleLogger.info("Search Response Status Code: " + response.statusCode());
+
+            if (response.statusCode() == 200) {
+                SimpleLogger.info("Successfully searched.");
+                System.out.println(response.body());
+            } else {
+                SimpleLogger.error("Failed to search. HTTP Status: " + response.statusCode() + " Body: " + response.body());
+            }
+        } catch (Exception e) {
+            SimpleLogger.error("An error occurred during the HTTP request for search: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }
