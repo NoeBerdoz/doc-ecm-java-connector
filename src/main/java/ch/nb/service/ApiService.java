@@ -3,6 +3,7 @@ package ch.nb.service;
 import ch.nb.auth.DocEcmApiAuth;
 import ch.nb.auth.PropertiesLoader;
 import ch.nb.dto.AttachmentDTO;
+import ch.nb.dto.MetadataDTO;
 import ch.nb.utils.SimpleLogger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -34,6 +35,8 @@ public class ApiService {
     }
 
     private static HttpResponse<String> sendHttpRequest(String endpoint) throws IOException, InterruptedException {
+        getAuthentication();
+
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(endpoint))
                 .header("accept", "application/json")
@@ -57,7 +60,6 @@ public class ApiService {
      * @return AttachmentDTO containing the attachment details, or null if an error occurs.
      */
     public static AttachmentDTO getDocumentAttachment(int objectID) {
-        getAuthentication();
 
         String endpoint = API_BASE_URL + "/api/document/" + objectID + "/attachment";
 
@@ -75,6 +77,28 @@ public class ApiService {
                 SimpleLogger.error("Failed to get document attachment. HTTP Status: " + response.statusCode() + " Body: " + response.body());
                 return null;
             }
+        } catch (Exception e) {
+            SimpleLogger.error("An error occurred during the HTTP request for getDocumentAttachment: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * Retrieves document metadata by its ID.
+     *
+     * @param objectID The ID of the document.
+     * @return MetadataDTO containing the document metadata, or null if an error occurs.
+     */
+    public static MetadataDTO getDocumentMetadata(int objectID) {
+        String endpoint = API_BASE_URL + "/api/document/" + objectID + "/metadata";
+
+        try {
+            HttpResponse<String> response = sendHttpRequest(endpoint);
+            SimpleLogger.info("Get Document Metadata response: " + response.body());
+            MetadataDTO metadataDTO = objectMapper.readValue(response.body(), MetadataDTO.class);
+            SimpleLogger.info(metadataDTO.toString());
+            return metadataDTO;
         } catch (Exception e) {
             SimpleLogger.error("An error occurred during the HTTP request for getDocumentAttachment: " + e.getMessage());
             e.printStackTrace();

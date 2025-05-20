@@ -2,6 +2,7 @@ package ch.nb;
 
 import ch.nb.auth.DocEcmApiAuth;
 import ch.nb.dto.AttachmentDTO;
+import ch.nb.dto.MetadataDTO;
 import ch.nb.service.ApiService;
 import ch.nb.utils.SimpleLogger;
 
@@ -12,8 +13,7 @@ public class Main {
         DocEcmApiAuth.authenticate();
         DocEcmApiAuth.isTokenExpired(60);
         AttachmentDTO attachment = ApiService.getDocumentAttachment(2414);
+        MetadataDTO metadata = ApiService.getDocumentMetadata(2414);
         SimpleLogger.info("END");
-
-
     }
 }
