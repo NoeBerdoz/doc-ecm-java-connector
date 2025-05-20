@@ -1,5 +1,6 @@
 package ch.nb.auth;
 
+import ch.nb.dto.TokenResponseDTO;
 import ch.nb.utils.SimpleLogger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 

@@ -1,4 +1,4 @@
-package ch.nb.auth;
+package ch.nb.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;

@@ -1,0 +1,70 @@
+package ch.nb.service;
+
+import ch.nb.auth.DocEcmApiAuth;
+import ch.nb.auth.PropertiesLoader;
+import ch.nb.dto.AttachmentDTO;
+import ch.nb.utils.SimpleLogger;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+
+public class ApiService {
+
+    private static final PropertiesLoader propertiesLoader = new PropertiesLoader("api.properties");
+    private static final String API_BASE_URL = propertiesLoader.getProperty("api.url");
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final HttpClient httpClient = HttpClient.newBuilder()
+            .version(HttpClient.Version.HTTP_1_1)
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
+
+    /**
+     * Retrieves a document attachment by its ID.
+     *
+     * @param objectID The ID of the document.
+     * @return AttachmentDTO containing the attachment details, or null if an error occurs.
+     */
+    public static AttachmentDTO getDocumentAttachment(int objectID) {
+        if (DocEcmApiAuth.currentToken == null || DocEcmApiAuth.isTokenExpired(60)) {
+            SimpleLogger.info("Token is null or expired. Attempting to re-authenticate.");
+            if (!DocEcmApiAuth.authenticate()) {
+                SimpleLogger.error("Authentication failed. Cannot proceed with API call.");
+                return null;
+            }
+        }
+
+        String endpoint = API_BASE_URL + "/api/document/" + objectID + "/attachment";
+        SimpleLogger.info("Attempting to get document attachment from: " + endpoint);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(endpoint))
+                .header("Authorization", "Bearer " + DocEcmApiAuth.currentToken.getAccessToken())
+                .GET()
+                .timeout(Duration.ofSeconds(30)) // Increased timeout for potentially large files
+                .build();
+
+        try {
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            SimpleLogger.info("Get Document Attachment Response Status Code: " + response.statusCode());
+
+            if (response.statusCode() == 200) {
+                SimpleLogger.info("Successfully retrieved document attachment.");
+                AttachmentDTO attachmentDTO = objectMapper.readValue(response.body(), AttachmentDTO.class);
+                SimpleLogger.info("Attachment DTO: " + attachmentDTO.toString());
+                return attachmentDTO;
+            } else {
+                SimpleLogger.error("Failed to get document attachment. HTTP Status: " + response.statusCode() + " Body: " + response.body());
+                return null;
+            }
+        } catch (Exception e) {
+            SimpleLogger.error("An error occurred during the HTTP request for getDocumentAttachment: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+}
