@@ -6,6 +6,7 @@ import ch.nb.dto.AttachmentDTO;
 import ch.nb.utils.SimpleLogger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -22,6 +23,33 @@ public class ApiService {
             .connectTimeout(Duration.ofSeconds(10))
             .build();
 
+    private static void getAuthentication() {
+        if (DocEcmApiAuth.currentToken == null || DocEcmApiAuth.isTokenExpired(60)) {
+            SimpleLogger.info("Token is null or expired. Attempting to re-authenticate.");
+            if (!DocEcmApiAuth.authenticate()) {
+                SimpleLogger.error("Authentication failed. Cannot proceed with API call.");
+                // TODO manage this with a custom exception
+            }
+        }
+    }
+
+    private static HttpResponse<String> sendHttpRequest(String endpoint) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(endpoint))
+                .header("accept", "application/json")
+                .header("Authorization", "Bearer " + DocEcmApiAuth.currentToken.getAccessToken())
+                .GET()
+                .timeout(Duration.ofSeconds(30)) // Increased timeout for potentially large files
+                .build();
+        try {
+            SimpleLogger.info("Attempting endpoint: " + endpoint);
+            return HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
     /**
      * Retrieves a document attachment by its ID.
      *
@@ -29,26 +57,12 @@ public class ApiService {
      * @return AttachmentDTO containing the attachment details, or null if an error occurs.
      */
     public static AttachmentDTO getDocumentAttachment(int objectID) {
-        if (DocEcmApiAuth.currentToken == null || DocEcmApiAuth.isTokenExpired(60)) {
-            SimpleLogger.info("Token is null or expired. Attempting to re-authenticate.");
-            if (!DocEcmApiAuth.authenticate()) {
-                SimpleLogger.error("Authentication failed. Cannot proceed with API call.");
-                return null;
-            }
-        }
+        getAuthentication();
 
         String endpoint = API_BASE_URL + "/api/document/" + objectID + "/attachment";
-        SimpleLogger.info("Attempting to get document attachment from: " + endpoint);
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(endpoint))
-                .header("Authorization", "Bearer " + DocEcmApiAuth.currentToken.getAccessToken())
-                .GET()
-                .timeout(Duration.ofSeconds(30)) // Increased timeout for potentially large files
-                .build();
 
         try {
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = sendHttpRequest(endpoint);
 
             SimpleLogger.info("Get Document Attachment Response Status Code: " + response.statusCode());
 
