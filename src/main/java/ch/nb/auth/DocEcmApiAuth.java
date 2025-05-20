@@ -22,7 +22,6 @@ public class DocEcmApiAuth {
     private static final String TOKEN_ENDPOINT = API_URL + "/token";
 
     public static void main(String[] args) {
-        // --- Configuration TODO put this in a config file ---
 
         // Create the HttpClient
         HttpClient httpClient = HttpClient.newBuilder()
