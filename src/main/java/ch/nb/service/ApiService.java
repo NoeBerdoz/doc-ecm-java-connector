@@ -5,6 +5,7 @@ import ch.nb.auth.PropertiesLoader;
 import ch.nb.dto.AttachmentDTO;
 import ch.nb.dto.MetadataDTO;
 import ch.nb.utils.SimpleLogger;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
@@ -13,6 +14,10 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class ApiService {
 
@@ -128,16 +133,31 @@ public class ApiService {
         }
     }
 
-    public static void searchDocumentsMetadata() {
+    private static List<Integer> searchDocumentsToIntegrate() {
         String endpoint = API_BASE_URL + "/api/search/advanced";
         String payload = "{\"searchPattern\": \";FF_INTEGRE|l01|Non|list;AND;FF_TRAITE|l01|Traité|list;\"}";
+        // String payload = "{\"searchPattern\": \";FF_INTEGRE|l01|Non|list;AND;FF_TRAITE|l01|Supprimé|list;\"}";
 
         try {
             HttpResponse<String> response = sendHttpPostRequest(endpoint, payload);
 
             if (response.statusCode() == 200) {
                 SimpleLogger.info("Successfully searched.");
-                System.out.println(response.body());
+                ObjectMapper objectMapper = new ObjectMapper();
+
+                // Parse the JSON
+                List<Map<String, Object>> searchResults = objectMapper.readValue(
+                        response.body(),
+                        new TypeReference<List<Map<String, Object>>>() {}
+                );
+
+                // Use a stream to retrieve each ObjectID in the parsed JSON
+                List<Integer> objectIDs = searchResults.stream()
+                        .map(resultMap -> (Integer) resultMap.get("ObjectID"))
+                        .collect(Collectors.toList());
+
+                SimpleLogger.info("Found " + objectIDs.size() + " documents to integrate");
+                return objectIDs;
             } else {
                 SimpleLogger.error("Failed to search. HTTP Status: " + response.statusCode() + " Body: " + response.body());
             }
@@ -145,22 +165,47 @@ public class ApiService {
             SimpleLogger.error("An error occurred during the HTTP request for search: " + e.getMessage());
             e.printStackTrace();
         }
+        return Collections.emptyList();
     }
 
-    public static void validateIntegrationFlow(int objectID) throws IOException, InterruptedException {
+    private static void validateDocumentIntegrationFlow(int objectID) throws IOException, InterruptedException {
         int flowID = 82; // This id is from the flow "Flux Integration ERP" in the ECM.
 
-        String endpoint = API_BASE_URL + "api/flow/validate/" + objectID;
+        String endpoint = API_BASE_URL + "/api/flow/validate/" + objectID;
         String payload = "{\"ObjectID\":" + objectID + ",\"FlowID\":" + flowID + "}";
 
         HttpResponse<String> response = sendHttpPostRequest(endpoint, payload);
 
         if (response.statusCode() == 200) {
-            SimpleLogger.info("Successfully searched.");
-            System.out.println(response.body());
+            SimpleLogger.info("Successfully validated!!! Document with ID: " + objectID + " should be in Intégré Oui value.");
         } else {
             SimpleLogger.error("Failed to validate flow integration. HTTP Status: " + response.statusCode() + " Body: " + response.body());
         }
-
     }
+
+    public static void integrateDocuments() throws IOException, InterruptedException {
+        List<Integer> documentsIds = searchDocumentsToIntegrate();
+        for (Integer id : documentsIds) {
+            SimpleLogger.info("Trying to integrate document with ID: " + id);
+            validateDocumentIntegrationFlow(id);
+        }
+    }
+
+    public static void setDocumentAsPaid(Integer objectID) throws IOException, InterruptedException {
+        int flowID = 83; // This id is from the flow "Flux Règlement" in the ECM.
+
+        String endpoint = API_BASE_URL + "/api/flow/validate/" + objectID;
+        String payload = "{\"ObjectID\":" + objectID + ", \"FlowID\":" + flowID + "}";
+
+        HttpResponse<String> response = sendHttpPostRequest(endpoint, payload);
+
+        // api returns the object id on response, status code is not trustworthy
+        if (response.statusCode() == 200) {
+            SimpleLogger.info("Successfully set document as paid. Document with ID: " + objectID);
+            SimpleLogger.warning("Document ID went from: " + objectID + " to: " + response.body());
+        } else {
+            SimpleLogger.error("Failed to set document as paid " + response.statusCode() + "Body:" + response.body());
+        }
+    }
+
 }
