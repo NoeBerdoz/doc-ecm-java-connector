@@ -66,10 +66,10 @@ public class DocEcmApiAuth {
 
             if (response.statusCode() == 200) {
                 SimpleLogger.info("Authentication successful");
-                // TODO parse the response.body() here to extract the actual access token.
                 ObjectMapper objectMapper = new ObjectMapper();
                 try {
                     currentToken = objectMapper.readValue(response.body(), TokenResponseDTO.class);
+                    tokenIssueTimeMillis = System.currentTimeMillis();
                     SimpleLogger.info("Token retrieved successfully");
                     return true;
                 } catch (Exception e) {
