@@ -64,9 +64,6 @@ public class DocEcmApiAuth {
             // HttpResponse.BodyHandlers.ofString() means the response body will be read as a String
             HttpResponse<String> response = httpClient.send(tokenRequest, HttpResponse.BodyHandlers.ofString());
 
-            System.out.println("Response Status Code: " + response.statusCode());
-            System.out.println("Response Body: " + response.body());
-
             if (response.statusCode() == 200) {
                 SimpleLogger.info("Authentication successful");
                 // TODO parse the response.body() here to extract the actual access token.
