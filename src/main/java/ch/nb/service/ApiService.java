@@ -135,8 +135,6 @@ public class ApiService {
         try {
             HttpResponse<String> response = sendHttpPostRequest(endpoint, payload);
 
-            SimpleLogger.info("Search Response Status Code: " + response.statusCode());
-
             if (response.statusCode() == 200) {
                 SimpleLogger.info("Successfully searched.");
                 System.out.println(response.body());
@@ -147,5 +145,22 @@ public class ApiService {
             SimpleLogger.error("An error occurred during the HTTP request for search: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    public static void validateIntegrationFlow(int objectID) throws IOException, InterruptedException {
+        int flowID = 82; // This id is from the flow "Flux Integration ERP" in the ECM.
+
+        String endpoint = API_BASE_URL + "api/flow/validate/" + objectID;
+        String payload = "{\"ObjectID\":" + objectID + ",\"FlowID\":" + flowID + "}";
+
+        HttpResponse<String> response = sendHttpPostRequest(endpoint, payload);
+
+        if (response.statusCode() == 200) {
+            SimpleLogger.info("Successfully searched.");
+            System.out.println(response.body());
+        } else {
+            SimpleLogger.error("Failed to validate flow integration. HTTP Status: " + response.statusCode() + " Body: " + response.body());
+        }
+
     }
 }
