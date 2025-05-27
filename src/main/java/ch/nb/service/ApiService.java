@@ -13,7 +13,11 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -179,10 +183,60 @@ public class ApiService {
         }
     }
 
+    private static void storeDocument(int objectID) {
+        AttachmentDTO attachmentDTO = getDocumentAttachment(objectID);
+
+        if (attachmentDTO == null) {
+            SimpleLogger.error("Could not retrieve attachment for ObjectID" + objectID);
+        }
+
+        // Only try to store the file if there is a file
+        // the API let the user create records without attachment.
+        String base64Content = attachmentDTO.getFile();
+        if (base64Content == null || base64Content.isEmpty()) {
+            // Fallback to "Base64File" if "File" is empty,
+            // I don't know why, the API also have another field for the same thing
+            base64Content = attachmentDTO.getBase64File();
+        }
+
+        if (base64Content == null) {
+            SimpleLogger.warning("No attachment file found for " + objectID + " maybe the user didn't put a file with the entry");
+            return;
+        }
+
+        String fileName = attachmentDTO.getFileName();
+
+        try {
+            // Decode the Base64 string into a byte array
+            byte[] decodedBytes = Base64.getDecoder().decode(base64Content);
+
+            Path localDocumentDirectory = Paths.get(System.getProperty("user.dir"), "ecm_integrated_documents");
+
+            // Create directory if it doesn't exist
+            if (!Files.exists(localDocumentDirectory)) {
+                Files.createDirectories(localDocumentDirectory);
+                SimpleLogger.info("Created directory at: " + localDocumentDirectory.toString());
+            }
+
+            Path destinationPath = localDocumentDirectory.resolve(fileName);
+            // Write the bytes to the file
+            Files.write(destinationPath, decodedBytes);
+            SimpleLogger.info("Successfully stored document '" + fileName + "' at: " + destinationPath);
+
+        } catch (IllegalArgumentException e) {
+            SimpleLogger.error("Failed to decode Base64 content for file '" + fileName + "': " + e.getMessage());
+            e.printStackTrace();
+        } catch (IOException e) {
+            SimpleLogger.error("Failed to write file '" + fileName + "': " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
     public static void integrateDocuments() throws IOException, InterruptedException {
         List<Integer> documentsIds = searchDocumentsToIntegrate();
         for (Integer id : documentsIds) {
             SimpleLogger.info("Trying to integrate document with ID: " + id);
+            storeDocument(id);
             validateDocumentIntegrationFlow(id);
         }
     }
@@ -200,7 +254,7 @@ public class ApiService {
             SimpleLogger.info("Successfully set document as paid. Document with ID: " + objectID);
             SimpleLogger.warning("Document ID went from: " + objectID + " to: " + response.body());
         } else {
-            SimpleLogger.error("Failed to set document as paid " + response.statusCode() + "Body:" + response.body());
+            SimpleLogger.error("Failed to set document as paid " + response.statusCode() + " Body: " + response.body());
         }
     }
 
