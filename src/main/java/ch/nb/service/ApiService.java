@@ -130,7 +130,7 @@ public class ApiService {
 
     public static void searchDocumentsMetadata() {
         String endpoint = API_BASE_URL + "/api/search/advanced";
-        String payload = "{\"searchPattern\": \";FF_INTEGRE|l01|Non|list;\"}";
+        String payload = "{\"searchPattern\": \";FF_INTEGRE|l01|Non|list;AND;FF_TRAITE|l01|Traité|list;\"}";
 
         try {
             HttpResponse<String> response = sendHttpPostRequest(endpoint, payload);
