@@ -136,7 +136,6 @@ public class ApiService {
     private static List<Integer> searchDocumentsToIntegrate() {
         String endpoint = API_BASE_URL + "/api/search/advanced";
         String payload = "{\"searchPattern\": \";FF_INTEGRE|l01|Non|list;AND;FF_TRAITE|l01|Traité|list;\"}";
-        // String payload = "{\"searchPattern\": \";FF_INTEGRE|l01|Non|list;AND;FF_TRAITE|l01|Supprimé|list;\"}";
 
         try {
             HttpResponse<String> response = sendHttpPostRequest(endpoint, payload);
@@ -168,7 +167,7 @@ public class ApiService {
         return Collections.emptyList();
     }
 
-    private static void validateDocumentIntegrationFlow(int objectID) throws IOException, InterruptedException {
+    private static void setDocumentAsIntegrated(int objectID) throws IOException, InterruptedException {
         int flowID = 82; // This id is from the flow "Flux Integration ERP" in the ECM.
 
         String endpoint = API_BASE_URL + "/api/flow/validate/" + objectID;
@@ -177,7 +176,7 @@ public class ApiService {
         HttpResponse<String> response = sendHttpPostRequest(endpoint, payload);
 
         if (response.statusCode() == 200) {
-            SimpleLogger.info("Successfully validated!!! Document with ID: " + objectID + " should be in Intégré Oui value.");
+            SimpleLogger.info("Successfully set document as integrated. Document with ID: " + objectID);
         } else {
             SimpleLogger.error("Failed to validate flow integration. HTTP Status: " + response.statusCode() + " Body: " + response.body());
         }
@@ -237,7 +236,7 @@ public class ApiService {
         for (Integer id : documentsIds) {
             SimpleLogger.info("Trying to integrate document with ID: " + id);
             storeDocument(id);
-            validateDocumentIntegrationFlow(id);
+            setDocumentAsIntegrated(id);
         }
     }
 

@@ -61,7 +61,6 @@ public class DocEcmApiAuth {
 
         try {
             // Send the request and get the response
-            // HttpResponse.BodyHandlers.ofString() means the response body will be read as a String
             HttpResponse<String> response = httpClient.send(tokenRequest, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
