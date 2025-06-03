@@ -8,16 +8,20 @@ import ch.nb.utils.SimpleLogger;
 
 import java.io.IOException;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 public class Main {
     public static void main(String[] args) throws IOException, InterruptedException {
+        SimpleLogger.info("STARTING");
+
         DocEcmApiAuth.authenticate();
         DocEcmApiAuth.isTokenExpired(60);
-//        AttachmentDTO attachment = ApiService.getDocumentAttachment(2690);
-//        MetadataDTO metadata = ApiService.getDocumentMetadata(2690);
+
         ApiService.integrateDocuments();
-        ApiService.setDocumentAsPaid(2765);
+
+        // Few exemples of callable methods
+        // ApiService.setDocumentAsPaid(3006);
+        // AttachmentDTO attachment = ApiService.getDocumentAttachment(2690);
+        // MetadataDTO metadata = ApiService.getDocumentMetadata(2690);
+
         SimpleLogger.info("END");
     }
 }
