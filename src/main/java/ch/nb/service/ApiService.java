@@ -93,8 +93,6 @@ public class ApiService {
         try {
             HttpResponse<String> response = sendHttpGetRequest(endpoint);
 
-            SimpleLogger.info("Get Document Attachment Response Status Code: " + response.statusCode());
-
             if (response.statusCode() == 200) {
                 SimpleLogger.info("Successfully retrieved document attachment.");
                 AttachmentDTO attachmentDTO = objectMapper.readValue(response.body(), AttachmentDTO.class);
@@ -122,9 +120,7 @@ public class ApiService {
 
         try {
             HttpResponse<String> response = sendHttpGetRequest(endpoint);
-            SimpleLogger.info("Get Document Metadata response: " + response.body());
             MetadataDTO metadataDTO = objectMapper.readValue(response.body(), MetadataDTO.class);
-            SimpleLogger.info(metadataDTO.toString());
             return metadataDTO;
         } catch (Exception e) {
             SimpleLogger.error("An error occurred during the HTTP request for getDocumentAttachment: " + e.getMessage());
